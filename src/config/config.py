@@ -1,4 +1,3 @@
-
 import argparse
 import re
 from pathlib import Path
@@ -71,32 +70,38 @@ def validate_depth(value):
 def validate_repository_mode(repo, test_mode):
     """Проверка репозитория с учетом выбранного режима."""
     if test_mode:
-        path = Path(repo)
-
-        if not path.exists():
-            raise argparse.ArgumentTypeError(
-                f"Файл тестового репозитория не найден: {repo}"
-            )
-
-        if not path.is_file():
-            raise argparse.ArgumentTypeError(
-                "Путь к тестовому репозиторию должен указывать на файл."
-            )
+        validate_test_repository(repo)
     else:
-        parsed = urlparse(repo)
-
-        if parsed.scheme not in ALLOWED_URL_SCHEMES or not parsed.netloc:
-            raise argparse.ArgumentTypeError(
-                "Укажите корректный URL репозитория (http или https)."
-            )
+        validate_remote_repository(repo)
 
 
-def create_parser():
-    """Создание парсера аргументов командной строки."""
-    parser = argparse.ArgumentParser(
-        description="Dependency Visualizer - Stage 1"
-    )
+def validate_test_repository(repo):
+    """Проверка локального тестового репозитория."""
+    path = Path(repo)
 
+    if not path.exists():
+        raise argparse.ArgumentTypeError(
+            f"Файл тестового репозитория не найден: {repo}"
+        )
+
+    if not path.is_file():
+        raise argparse.ArgumentTypeError(
+            "Путь к тестовому репозиторию должен указывать на файл."
+        )
+
+
+def validate_remote_repository(repo):
+    """Проверка URL удаленного репозитория."""
+    parsed = urlparse(repo)
+
+    if parsed.scheme not in ALLOWED_URL_SCHEMES or not parsed.netloc:
+        raise argparse.ArgumentTypeError(
+            "Укажите корректный URL репозитория (http или https)."
+        )
+
+
+def add_required_arguments(parser):
+    """Добавление обязательных аргументов."""
     parser.add_argument(
         "--package",
         type=validate_package,
@@ -111,6 +116,9 @@ def create_parser():
         help="URL репозитория или путь к тестовому файлу"
     )
 
+
+def add_optional_arguments(parser):
+    """Добавление необязательных аргументов."""
     parser.add_argument(
         "--test-mode",
         choices=["true", "false"],
@@ -138,15 +146,30 @@ def create_parser():
         help="Максимальная глубина анализа"
     )
 
+
+def create_parser():
+    """Создание парсера аргументов командной строки."""
+    parser = argparse.ArgumentParser(
+        description="Dependency Visualizer - Stage 1"
+    )
+
+    add_required_arguments(parser)
+    add_optional_arguments(parser)
+
     return parser
+
+
+def convert_test_mode(config):
+    """Преобразование режима тестирования в логическое значение."""
+    config.test_mode = config.test_mode == "true"
+    return config
 
 
 def parse_config(args=None):
     """Получение и проверка конфигурации."""
     parser = create_parser()
     config = parser.parse_args(args)
-
-    config.test_mode = config.test_mode == "true"
+    config = convert_test_mode(config)
 
     try:
         validate_repository_mode(config.repo, config.test_mode)
