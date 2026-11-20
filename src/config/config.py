@@ -1,4 +1,3 @@
-
 import argparse
 import re
 from pathlib import Path
@@ -71,24 +70,93 @@ def validate_depth(value):
 def validate_repository_mode(repo, test_mode):
     """Проверка репозитория с учетом выбранного режима."""
     if test_mode:
-        path = Path(repo)
-
-        if not path.exists():
-            raise argparse.ArgumentTypeError(
-                f"Файл тестового репозитория не найден: {repo}"
-            )
-
-        if not path.is_file():
-            raise argparse.ArgumentTypeError(
-                "Путь к тестовому репозиторию должен указывать на файл."
-            )
+        validate_test_repository(repo)
     else:
-        parsed = urlparse(repo)
+        validate_remote_repository(repo)
 
-        if parsed.scheme not in ALLOWED_URL_SCHEMES or not parsed.netloc:
-            raise argparse.ArgumentTypeError(
-                "Укажите корректный URL репозитория (http или https)."
-            )
+
+def validate_test_repository(repo):
+    """Проверка локального тестового файла."""
+    path = Path(repo)
+
+    if not path.exists():
+        raise argparse.ArgumentTypeError(
+            f"Файл тестового репозитория не найден: {repo}"
+        )
+
+    if not path.is_file():
+        raise argparse.ArgumentTypeError(
+            "Путь к тестовому репозиторию должен указывать на файл."
+        )
+
+
+def validate_remote_repository(repo):
+    """Проверка URL удаленного репозитория."""
+    parsed = urlparse(repo)
+
+    if parsed.scheme not in ALLOWED_URL_SCHEMES or not parsed.netloc:
+        raise argparse.ArgumentTypeError(
+            "Укажите корректный URL репозитория (http или https)."
+        )
+
+
+def add_package_argument(parser):
+    """Добавление аргумента имени пакета."""
+    parser.add_argument(
+        "--package",
+        type=validate_package,
+        required=True,
+        help="Имя анализируемого пакета"
+    )
+
+
+def add_repo_argument(parser):
+    """Добавление аргумента репозитория."""
+    parser.add_argument(
+        "--repo",
+        type=validate_repo,
+        required=True,
+        help="URL репозитория или путь к тестовому файлу"
+    )
+
+
+def add_test_mode_argument(parser):
+    """Добавление аргумента тестового режима."""
+    parser.add_argument(
+        "--test-mode",
+        choices=["true", "false"],
+        default="false",
+        help="Режим тестового репозитория (true/false)"
+    )
+
+
+def add_output_argument(parser):
+    """Добавление аргумента выходного файла."""
+    parser.add_argument(
+        "--output",
+        type=validate_output,
+        default="graph.png",
+        help="Имя выходного PNG-файла"
+    )
+
+
+def add_ascii_argument(parser):
+    """Добавление аргумента ASCII-вывода."""
+    parser.add_argument(
+        "--ascii",
+        action="store_true",
+        help="Вывод зависимостей в формате ASCII-дерева"
+    )
+
+
+def add_depth_argument(parser):
+    """Добавление аргумента максимальной глубины."""
+    parser.add_argument(
+        "--max-depth",
+        type=validate_depth,
+        default=DEFAULT_MAX_DEPTH,
+        help="Максимальная глубина анализа"
+    )
 
 
 def create_parser():
@@ -97,46 +165,12 @@ def create_parser():
         description="Dependency Visualizer - Stage 1"
     )
 
-    parser.add_argument(
-        "--package",
-        type=validate_package,
-        required=True,
-        help="Имя анализируемого пакета"
-    )
-
-    parser.add_argument(
-        "--repo",
-        type=validate_repo,
-        required=True,
-        help="URL репозитория или путь к тестовому файлу"
-    )
-
-    parser.add_argument(
-        "--test-mode",
-        choices=["true", "false"],
-        default="false",
-        help="Режим тестового репозитория (true/false)"
-    )
-
-    parser.add_argument(
-        "--output",
-        type=validate_output,
-        default="graph.png",
-        help="Имя выходного PNG-файла"
-    )
-
-    parser.add_argument(
-        "--ascii",
-        action="store_true",
-        help="Вывод зависимостей в формате ASCII-дерева"
-    )
-
-    parser.add_argument(
-        "--max-depth",
-        type=validate_depth,
-        default=DEFAULT_MAX_DEPTH,
-        help="Максимальная глубина анализа"
-    )
+    add_package_argument(parser)
+    add_repo_argument(parser)
+    add_test_mode_argument(parser)
+    add_output_argument(parser)
+    add_ascii_argument(parser)
+    add_depth_argument(parser)
 
     return parser
 
