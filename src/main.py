@@ -32,15 +32,6 @@ def main():
     """Запускает построение графа зависимостей."""
     config = parse_config()
 
-    print("\n========== CONFIGURATION ==========")
-    print(f"package: {config.package}")
-    print(f"repo: {config.repo}")
-    print(f"test_mode: {config.test_mode}")
-    print(f"output: {config.output}")
-    print(f"ascii: {config.ascii}")
-    print(f"max_depth: {config.max_depth}")
-    print("==================================")
-
     try:
         if config.test_mode:
             repository = load_test_repository(config.repo)
