@@ -12,10 +12,13 @@ PNG_EXTENSION = ".png"
 
 def validate_package(value):
     """Проверка имени анализируемого пакета."""
-    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", value):
+    pattern = r"[A-Za-z0-9][A-Za-z0-9._-]*"
+
+    if not re.fullmatch(pattern, value):
         raise argparse.ArgumentTypeError(
             "Имя пакета содержит недопустимые символы."
         )
+
     return value
 
 
@@ -25,6 +28,7 @@ def validate_repo(value):
         raise argparse.ArgumentTypeError(
             "Путь или URL репозитория не может быть пустым."
         )
+
     return value
 
 
@@ -67,16 +71,8 @@ def validate_depth(value):
     return depth
 
 
-def validate_repository_mode(repo, test_mode):
-    """Проверка репозитория с учетом выбранного режима."""
-    if test_mode:
-        validate_test_repository(repo)
-    else:
-        validate_remote_repository(repo)
-
-
 def validate_test_repository(repo):
-    """Проверка локального тестового файла."""
+    """Проверка локального тестового репозитория."""
     path = Path(repo)
 
     if not path.exists():
@@ -94,85 +90,106 @@ def validate_remote_repository(repo):
     """Проверка URL удаленного репозитория."""
     parsed = urlparse(repo)
 
-    if parsed.scheme not in ALLOWED_URL_SCHEMES or not parsed.netloc:
+    if (
+        parsed.scheme not in ALLOWED_URL_SCHEMES
+        or not parsed.netloc
+    ):
         raise argparse.ArgumentTypeError(
             "Укажите корректный URL репозитория (http или https)."
         )
 
 
-def add_package_argument(parser):
-    """Добавление аргумента имени пакета."""
-    parser.add_argument(
-        "--package",
-        type=validate_package,
-        required=True,
-        help="Имя анализируемого пакета"
+def validate_repository_mode(repo, test_mode):
+    """Проверка репозитория с учетом выбранного режима."""
+    validator = (
+        validate_test_repository
+        if test_mode
+        else validate_remote_repository
     )
 
-
-def add_repo_argument(parser):
-    """Добавление аргумента репозитория."""
-    parser.add_argument(
-        "--repo",
-        type=validate_repo,
-        required=True,
-        help="URL репозитория или путь к тестовому файлу"
-    )
+    validator(repo)
 
 
-def add_test_mode_argument(parser):
-    """Добавление аргумента тестового режима."""
-    parser.add_argument(
-        "--test-mode",
-        choices=["true", "false"],
-        default="false",
-        help="Режим тестового репозитория (true/false)"
-    )
+def add_arguments(parser):
+    """Добавление аргументов командной строки."""
+    arguments = [
+        (
+            "--package",
+            {
+                "type": validate_package,
+                "required": True,
+                "help": "Имя анализируемого пакета",
+            },
+        ),
+        (
+            "--repo",
+            {
+                "type": validate_repo,
+                "required": True,
+                "help": "URL репозитория или путь к тестовому файлу",
+            },
+        ),
+        (
+            "--test-mode",
+            {
+                "choices": ["true", "false"],
+                "default": "false",
+                "help": "Режим тестового репозитория (true/false)",
+            },
+        ),
+        (
+            "--output",
+            {
+                "type": validate_output,
+                "default": "graph.png",
+                "help": "Имя выходного PNG-файла",
+            },
+        ),
+        (
+            "--ascii",
+            {
+                "action": "store_true",
+                "help": "Вывод зависимостей в формате ASCII-дерева",
+            },
+        ),
+        (
+            "--max-depth",
+            {
+                "type": validate_depth,
+                "default": DEFAULT_MAX_DEPTH,
+                "help": "Максимальная глубина анализа",
+            },
+        ),
+    ]
 
-
-def add_output_argument(parser):
-    """Добавление аргумента выходного файла."""
-    parser.add_argument(
-        "--output",
-        type=validate_output,
-        default="graph.png",
-        help="Имя выходного PNG-файла"
-    )
-
-
-def add_ascii_argument(parser):
-    """Добавление аргумента ASCII-вывода."""
-    parser.add_argument(
-        "--ascii",
-        action="store_true",
-        help="Вывод зависимостей в формате ASCII-дерева"
-    )
-
-
-def add_depth_argument(parser):
-    """Добавление аргумента максимальной глубины."""
-    parser.add_argument(
-        "--max-depth",
-        type=validate_depth,
-        default=DEFAULT_MAX_DEPTH,
-        help="Максимальная глубина анализа"
-    )
+    for name, options in arguments:
+        parser.add_argument(name, **options)
 
 
 def create_parser():
     """Создание парсера аргументов командной строки."""
     parser = argparse.ArgumentParser(
-        description="Dependency Visualizer - Stage 1"
+        description="Dependency Visualizer"
     )
 
-    add_package_argument(parser)
-    add_repo_argument(parser)
-    add_test_mode_argument(parser)
-    add_output_argument(parser)
-    add_ascii_argument(parser)
-    add_depth_argument(parser)
-
+    add_arguments(parser)
     return parser
+
+
+def normalize_config(config):
+    """Преобразование параметров конфигурации."""
+    config.test_mode = config.test_mode == "true"
+
+
+def validate_config(parser, config):
+    """Проверка конфигурации репозитория."""
+    try:
+        validate_repository_mode(
+            config.repo,
+            config.test_mode,
+        )
+    except argparse.ArgumentTypeError as error:
+        parser.error(str(error))
 
 
 def parse_config(args=None):
@@ -180,11 +197,7 @@ def parse_config(args=None):
     parser = create_parser()
     config = parser.parse_args(args)
 
-    config.test_mode = config.test_mode == "true"
-
-    try:
-        validate_repository_mode(config.repo, config.test_mode)
-    except argparse.ArgumentTypeError as error:
-        parser.error(str(error))
+    normalize_config(config)
+    validate_config(parser, config)
 
     return config

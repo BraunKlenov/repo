@@ -1,3 +1,6 @@
-запуск программы:       run.bat --package A --repo tests/fixtures/repository.json --test-mode true --max-depth 10
-ограничение глубины:    run.bat --package A --repo tests/fixtures/repository.json --test-mode true --max-depth 1
-пакет без зависимостей: run.bat --package G --repo tests/fixtures/repository.json --test-mode true --max-depth 5
+Долго грузят.
+run.bat --package requests --repo https://pypi.org/pypi --test-mode false --max-depth 3
+run.bat --package flask --repo https://pypi.org/pypi --test-mode false --max-depth 3
+run.bat --package A --repo tests/fixtures/repository.json --test-mode true --max-depth 10
+тестовый репозиторий (циклические зависимости): run.bat --package A --repo tests/fixtures/repository.json --test-mode true --max-depth 10
+напи

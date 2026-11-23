@@ -1,4 +1,3 @@
-
 import json
 import re
 from urllib.error import HTTPError, URLError
@@ -41,6 +40,11 @@ def fetch_metadata(repo_url):
             "Время ожидания ответа от репозитория истекло."
         ) from error
 
+    return parse_metadata_json(content)
+
+
+def parse_metadata_json(content):
+    """Преобразование ответа репозитория в JSON."""
     try:
         return json.loads(content)
     except json.JSONDecodeError as error:
@@ -50,40 +54,53 @@ def fetch_metadata(repo_url):
 
 
 def extract_direct_dependencies(metadata):
-    """Извлекает прямые обязательные зависимости из метаданных."""
+    """Извлекает прямые обязательные зависимости."""
+    info = get_package_info(metadata)
+    requirements = info.get("requires_dist") or []
+
+    validate_requirements(requirements)
+
+    return [
+        requirement.strip()
+        for requirement in requirements
+        if is_required_dependency(requirement)
+    ]
+
+
+def get_package_info(metadata):
+    """Получение раздела info из метаданных."""
     try:
-        info = metadata["info"]
+        return metadata["info"]
     except (KeyError, TypeError) as error:
         raise ValueError(
             "В ответе отсутствует раздел info."
         ) from error
 
-    requirements = info.get("requires_dist") or []
 
+def validate_requirements(requirements):
+    """Проверка формата списка зависимостей."""
     if not isinstance(requirements, list):
         raise ValueError(
             "Поле requires_dist имеет неверный формат."
         )
 
-    dependencies = []
 
-    for requirement in requirements:
-        if not isinstance(requirement, str):
-            continue
+def is_required_dependency(requirement):
+    """Проверяет, является ли зависимость обязательной."""
+    if not isinstance(requirement, str):
+        return False
 
-        marker = requirement.partition(";")[2]
+    marker = requirement.partition(";")[2]
 
-        if OPTIONAL_EXTRA_PATTERN.search(marker):
-            continue
+    if OPTIONAL_EXTRA_PATTERN.search(marker):
+        return False
 
-        if not REQUIREMENT_PATTERN.match(requirement):
-            raise ValueError(
-                f"Некорректная запись зависимости: {requirement}"
-            )
+    if not REQUIREMENT_PATTERN.match(requirement):
+        raise ValueError(
+            f"Некорректная запись зависимости: {requirement}"
+        )
 
-        dependencies.append(requirement.strip())
-
-    return dependencies
+    return True
 
 
 def get_direct_dependencies(repo_url):
@@ -92,40 +109,52 @@ def get_direct_dependencies(repo_url):
     return extract_direct_dependencies(metadata)
 
 
-def build_package_url(repo_url, package):
-    """Формирует URL метаданных указанного пакета."""
+def get_repository_base(repo_url):
+    """Определяет базовый адрес репозитория."""
     parsed_url = urlsplit(repo_url)
-    path_prefix, separator, suffix = parsed_url.path.rpartition("/")
+    path = parsed_url.path.rstrip("/")
+    parts = path.split("/")
 
-    if not separator or suffix != "json":
-        raise ValueError(
-            "Ожидается URL PyPI JSON API вида /pypi/package/json."
-        )
-
-    repository_prefix, separator, _ = path_prefix.rpartition("/")
-
-    if not separator:
-        raise ValueError("Некорректный URL репозитория PyPI.")
-
-    package_path = (
-        f"{repository_prefix}/{quote(package)}/json"
-    )
+    if len(parts) >= 2 and parts[-1] == "json":
+        path = "/".join(parts[:-2])
 
     return urlunsplit((
         parsed_url.scheme,
         parsed_url.netloc,
-        package_path,
+        path.rstrip("/"),
         "",
         "",
     ))
+
+
+def build_package_url(repo_url, package):
+    """Формирует URL JSON-метаданных пакета."""
+    parsed_url = urlsplit(repo_url)
+
+    if parsed_url.scheme not in ("http", "https"):
+        raise ValueError("Некорректная схема URL репозитория.")
+
+    if not parsed_url.netloc:
+        raise ValueError("Некорректный URL репозитория.")
+
+    base_url = get_repository_base(repo_url)
+    package_name = quote(package)
+
+    return f"{base_url}/{package_name}/json"
 
 
 def get_package_dependencies(package, repo_url):
     """Получает названия прямых зависимостей пакета."""
     package_url = build_package_url(repo_url, package)
     metadata = fetch_metadata(package_url)
+
     requirements = extract_direct_dependencies(metadata)
 
+    return extract_package_names(requirements)
+
+
+def extract_package_names(requirements):
+    """Извлекает названия пакетов из требований."""
     dependencies = []
 
     for requirement in requirements:
