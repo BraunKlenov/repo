@@ -1,6 +1,6 @@
-Долго грузят.
-run.bat --package requests --repo https://pypi.org/pypi --test-mode false --max-depth 3
-run.bat --package flask --repo https://pypi.org/pypi --test-mode false --max-depth 3
-run.bat --package A --repo tests/fixtures/repository.json --test-mode true --max-depth 10
-тестовый репозиторий (циклические зависимости): run.bat --package A --repo tests/fixtures/repository.json --test-mode true --max-depth 10
+
+1. run.bat --package requests --repo https://pypi.org/pypi --test-mode false --max-depth 3
+2. run.bat --package flask --repo https://pypi.org/pypi --test-mode false --max-depth 3
+тестовый репозиторий 1. run.bat --package A --repo tests/fixtures/repository.json --test-mode true --max-depth 10
+тестовый репозиторий 2. (циклические зависимости): run.bat --package A --repo tests/fixtures/repository.json --test-mode true --max-depth 10
 напи
