@@ -1,6 +1,7 @@
 
 import sys
 from pathlib import Path
+
 from src.config.config import parse_config
 from src.dependencies.fetcher import get_package_dependencies
 from src.dependencies.graph import (
@@ -34,7 +35,6 @@ def print_cycles(cycles):
 
 def print_ascii_tree(root_package, graph):
     """Выводит граф зависимостей в виде ASCII-дерева."""
-    print("\nДерево зависимостей:")
 
     def print_branch(package, prefix, is_last, active_path):
         branch = "\\-- " if is_last else "|-- "
@@ -69,88 +69,95 @@ def print_ascii_tree(root_package, graph):
                 next_path,
             )
 
+    print("\nДерево зависимостей:")
     print(root_package)
 
-    for index, dependency in enumerate(graph.get(root_package, [])):
+    dependencies = graph.get(root_package, [])
+
+    for index, dependency in enumerate(dependencies):
         print_branch(
             dependency,
             "",
-            index == len(graph.get(root_package, [])) - 1,
+            index == len(dependencies) - 1,
             [root_package],
         )
 
 
-def print_configuration(config):
-    """Выводит параметры запуска приложения."""
-    print("\n========== CONFIGURATION ==========")
-    print(f"package: {config.package}")
-    print(f"repo: {config.repo}")
-    print(f"test_mode: {config.test_mode}")
-    print(f"output: {config.output}")
-    print(f"ascii: {config.ascii}")
-    print(f"max_depth: {config.max_depth}")
-    print(f"reverse: {config.reverse}")
-    print("==================================")
+
+def create_test_dependency_provider(config):
+    """Создаёт источник зависимостей для тестового репозитория."""
+    repository = load_test_repository(config.repo)
+
+    if config.reverse:
+        if config.package not in repository:
+            raise ValueError(
+                f"Пакет {config.package} отсутствует в репозитории."
+            )
+
+        return invert_dependency_graph(repository).get
+
+    return repository.get
 
 
 def create_dependency_provider(config):
     """Создаёт источник зависимостей для обхода графа."""
     if config.test_mode:
-        repository = load_test_repository(config.repo)
-
-        if config.reverse:
-            if config.package not in repository:
-                raise ValueError(
-                    f"Пакет {config.package} отсутствует в репозитории."
-                )
-
-            return invert_dependency_graph(repository).get
-
-        return repository.get
+        return create_test_dependency_provider(config)
 
     if config.reverse:
         raise ValueError(
             "Обратные зависимости доступны только в тестовом режиме."
         )
 
-    return lambda package: get_package_dependencies(
-        package,
-        config.repo,
+    def provider(package):
+        return get_package_dependencies(package, config.repo)
+
+    return provider
+
+
+def build_graph(config, dependency_provider):
+    """Строит граф зависимостей и находит циклы."""
+    return build_dependency_graph(
+        config.package,
+        dependency_provider,
+        config.max_depth,
     )
+
+
+def print_graph_results(graph, cycles, config):
+    """Выводит результаты построения графа."""
+    if config.reverse:
+        print("\nРежим: обратные зависимости")
+
+    print_graph(graph)
+    print_cycles(cycles)
+    print(f"\nВсего пакетов в графе: {len(graph)}")
+
+    if config.ascii:
+        print_ascii_tree(config.package, graph)
+
+
+def save_graph(graph, config):
+    """Сохраняет граф в PNG и Mermaid."""
+    generate_png(graph, config.output)
+
+    output_path = Path(config.output)
+    mermaid_path = output_path.with_suffix(".mmd")
+
+    print(f"\nMermaid-файл сохранён: {mermaid_path}")
+    print(f"Изображение PNG сохранено: {output_path}")
 
 
 def main():
     """Запускает построение и визуализацию графа зависимостей."""
     config = parse_config()
-    print_configuration(config)
 
     try:
         dependency_provider = create_dependency_provider(config)
+        graph, cycles = build_graph(config, dependency_provider)
 
-        graph, cycles = build_dependency_graph(
-            config.package,
-            dependency_provider,
-            config.max_depth,
-        )
-
-        if config.reverse:
-            print("\nРежим: обратные зависимости")
-
-        print_graph(graph)
-        print_cycles(cycles)
-
-        print(f"\nВсего пакетов в графе: {len(graph)}")
-
-        if config.ascii:
-            print_ascii_tree(config.package, graph)
-
-        generate_png(graph, config.output)
-
-        output_path = Path(config.output)
-        mermaid_path = output_path.with_suffix(".mmd")
-
-        print(f"\nMermaid-файл сохранён: {mermaid_path}")
-        print(f"Изображение PNG сохранено: {output_path}")
+        print_graph_results(graph, cycles, config)
+        save_graph(graph, config)
 
     except ValueError as error:
         print(f"\nОшибка: {error}", file=sys.stderr)

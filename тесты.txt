@@ -1,3 +1,15 @@
-Пакет A — граф с циклическими зависимостями: py -m src.main --package A --repo tests/fixtures/repository.json --test-mode true --ascii --max-depth 5 --output results/package_a.png
-Пакет C — общая зависимость D: 				 py -m src.main --package C --repo tests/fixtures/repository.json --test-mode true --ascii --max-depth 5 --output results/package_c.png
-Пакет G — пакет без зависимостей: 			 py -m src.main --package G --repo tests/fixtures/repository.json --test-mode true --ascii --max-depth 5 --output results/package_g.png
+Пакет A — граф с циклическими зависимостями: 
+py -m src.main --package A --repo tests/fixtures/repository.json --test-mode true --ascii --max-depth 5 --output results/package_a.png
+
+Пакет C — общая зависимость D: 
+py -m src.main --package C --repo tests/fixtures/repository.json --test-mode true --ascii --max-depth 5 --output results/package_c.png
+
+Пакет G — пакет без зависимостей: 
+py -m src.main --package G --repo tests/fixtures/repository.json --test-mode true --ascii --max-depth 5 --output results/package_g.png
+
+
+Реальный репозиторий: 
+py -m src.main --package requests --repo https://pypi.org/pypi/requests/json --max-depth 3 --ascii --output results/requests.png
+
+Все сохраняется в папку results.
+РЕКОМЕНДУЕТСЯ отключить VPN перед тестами.
