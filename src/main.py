@@ -31,19 +31,6 @@ def print_cycles(cycles):
         print(" -> ".join(cycle))
 
 
-def print_configuration(config):
-    """Выводит параметры запуска приложения."""
-    print("\n========== CONFIGURATION ==========")
-    print(f"package: {config.package}")
-    print(f"repo: {config.repo}")
-    print(f"test_mode: {config.test_mode}")
-    print(f"output: {config.output}")
-    print(f"ascii: {config.ascii}")
-    print(f"max_depth: {config.max_depth}")
-    print(f"reverse: {config.reverse}")
-    print("==================================")
-
-
 def create_dependency_provider(config):
     """Создаёт источник зависимостей для обхода графа."""
     if config.test_mode:
@@ -73,7 +60,6 @@ def create_dependency_provider(config):
 def main():
     """Запускает построение графа зависимостей."""
     config = parse_config()
-    print_configuration(config)
 
     try:
         dependency_provider = create_dependency_provider(config)

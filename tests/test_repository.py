@@ -10,8 +10,8 @@ from src.dependencies.test_repository import (
 )
 
 
-class TestRepository(unittest.TestCase):
-    """Проверки загрузки тестового репозитория."""
+class TestGraphValidation(unittest.TestCase):
+    """Проверки валидации графа зависимостей."""
 
     def test_valid_graph(self):
         """Проверяет корректный граф."""
@@ -38,6 +38,10 @@ class TestRepository(unittest.TestCase):
         """Проверяет неверный формат зависимостей."""
         with self.assertRaises(ValueError):
             validate_test_graph({"A": "B"})
+
+
+class TestRepositoryLoading(unittest.TestCase):
+    """Проверки загрузки тестового репозитория."""
 
     def test_invalid_json_file(self):
         """Проверяет обработку некорректного JSON-файла."""

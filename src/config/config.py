@@ -91,12 +91,8 @@ def validate_repository_mode(repo, test_mode):
             )
 
 
-def create_parser():
-    """Создание парсера аргументов командной строки."""
-    parser = argparse.ArgumentParser(
-        description="Dependency Visualizer"
-    )
-
+def add_package_argument(parser):
+    """Добавление аргумента имени пакета."""
     parser.add_argument(
         "--package",
         type=validate_package,
@@ -104,6 +100,9 @@ def create_parser():
         help="Имя анализируемого пакета"
     )
 
+
+def add_repository_argument(parser):
+    """Добавление аргумента репозитория."""
     parser.add_argument(
         "--repo",
         type=validate_repo,
@@ -111,6 +110,9 @@ def create_parser():
         help="URL репозитория или путь к тестовому файлу"
     )
 
+
+def add_test_mode_argument(parser):
+    """Добавление аргумента режима тестирования."""
     parser.add_argument(
         "--test-mode",
         choices=["true", "false"],
@@ -118,6 +120,9 @@ def create_parser():
         help="Режим тестового репозитория (true/false)"
     )
 
+
+def add_output_argument(parser):
+    """Добавление аргумента выходного файла."""
     parser.add_argument(
         "--output",
         type=validate_output,
@@ -125,12 +130,18 @@ def create_parser():
         help="Имя выходного PNG-файла"
     )
 
+
+def add_ascii_argument(parser):
+    """Добавление аргумента ASCII-формата."""
     parser.add_argument(
         "--ascii",
         action="store_true",
         help="Вывод зависимостей в формате ASCII-дерева"
     )
 
+
+def add_max_depth_argument(parser):
+    """Добавление аргумента максимальной глубины."""
     parser.add_argument(
         "--max-depth",
         type=validate_depth,
@@ -138,11 +149,29 @@ def create_parser():
         help="Максимальная глубина анализа"
     )
 
+
+def add_reverse_argument(parser):
+    """Добавление аргумента обратных зависимостей."""
     parser.add_argument(
         "--reverse",
         action="store_true",
         help="Вывод обратных зависимостей пакета"
     )
+
+
+def create_parser():
+    """Создание парсера аргументов командной строки."""
+    parser = argparse.ArgumentParser(
+        description="Dependency Visualizer"
+    )
+
+    add_package_argument(parser)
+    add_repository_argument(parser)
+    add_test_mode_argument(parser)
+    add_output_argument(parser)
+    add_ascii_argument(parser)
+    add_max_depth_argument(parser)
+    add_reverse_argument(parser)
 
     return parser
 

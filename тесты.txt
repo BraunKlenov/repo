@@ -1,3 +1,9 @@
+РЕКОМЕНДУЕТСЯ отключить VPN перед тестами.
+Тестовые:
 Обратные зависимости пакета D: run.bat --package D --repo tests/fixtures/repository.json --test-mode true --reverse --max-depth 10
 Обратные зависимости пакета B: run.bat --package B --repo tests/fixtures/repository.json --test-mode true --reverse --max-depth 10
-пакет без зависимостей:        run.bat --package G --repo tests/fixtures/repository.json --test-mode true --reverse
+
+Реальные:
+Реальные зависимости requests: run.bat --package requests --repo https://pypi.org/pypi/requests/json --max-depth 5
+Реальные зависимости flask:    run.bat --package flask --repo https://pypi.org/pypi/flask/json --max-depth 5
+Реальные зависимости numpy:    run.bat --package numpy --repo https://pypi.org/pypi/numpy/json --max-depth 5
